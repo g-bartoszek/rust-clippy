@@ -67,16 +67,43 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
     fn check_expr(&mut self, cx: &LateContext<'a, 'tcx>, e: &'tcx Expr) {
         use self::Expression::*;
         if let ExprKind::If(ref pred, ref then_block, Some(ref else_expr)) = e.node {
+
+            let parent_id = cx.tcx.hir().get_parent_node(e.id);
+            let parent_node = cx.tcx.hir().get(parent_id);
+
+            let parent_is_if = match parent_node {
+                rustc::hir::Node::Expr(e) => {
+                    match e.node {
+                        ExprKind::If(_,_,_) => {
+                            println!("Parent is IF");
+                            true
+                        }
+                        _ => {
+                            println!("Parent is not an IF");
+                            false
+                        }
+                    }
+                },
+                _ => {
+                    println!("Parent is not an EXPRESSION");
+                    false
+                }
+            };
+
             let reduce = |ret, not| {
                 let mut applicability = Applicability::MachineApplicable;
                 let snip = Sugg::hir_with_applicability(cx, pred, "<predicate>", &mut applicability);
                 let snip = if not { !snip } else { snip };
 
-                let hint = if ret {
+                let mut hint = if ret {
                     format!("return {}", snip)
                 } else {
                     snip.to_string()
                 };
+
+                if parent_is_if {
+                    hint = format!("{{ {} }}", hint);
+                }
 
                 span_lint_and_sugg(
                     cx,
@@ -117,6 +144,25 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
             }
         }
     }
+}
+
+fn parent_node_is_if_expr(expr: &Expr, cx: &LateContext) -> bool {
+    let parent_id = cx.tcx.hir().get_parent_node(expr.id);
+    let parent_node = cx.tcx.hir().get(parent_id);
+
+    match parent_node {
+        rustc::hir::Node::Expr(e) => {
+            match e.node {
+                ExprKind::If(_,_,_) => {
+                    return true;
+                }
+                _ => { }
+            }
+        },
+        _ => { }
+    };
+
+    false
 }
 
 #[derive(Copy, Clone)]

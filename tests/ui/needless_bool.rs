@@ -141,3 +141,17 @@ fn needless_bool3(x: bool) {
     if x == true {};
     if x == false {};
 }
+
+fn needless_bool4() {
+    let b = false;
+    let returns_bool = || false;
+
+    let x = if b {
+        unimplemented!()
+    } else if returns_bool()
+    {
+        false
+    } else {
+        true
+    };
+}
