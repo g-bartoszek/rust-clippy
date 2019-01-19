@@ -68,28 +68,6 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
         use self::Expression::*;
         if let ExprKind::If(ref pred, ref then_block, Some(ref else_expr)) = e.node {
 
-            let parent_id = cx.tcx.hir().get_parent_node(e.id);
-            let parent_node = cx.tcx.hir().get(parent_id);
-
-            let parent_is_if = match parent_node {
-                rustc::hir::Node::Expr(e) => {
-                    match e.node {
-                        ExprKind::If(_,_,_) => {
-                            println!("Parent is IF");
-                            true
-                        }
-                        _ => {
-                            println!("Parent is not an IF");
-                            false
-                        }
-                    }
-                },
-                _ => {
-                    println!("Parent is not an EXPRESSION");
-                    false
-                }
-            };
-
             let reduce = |ret, not| {
                 let mut applicability = Applicability::MachineApplicable;
                 let snip = Sugg::hir_with_applicability(cx, pred, "<predicate>", &mut applicability);
@@ -101,7 +79,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
                     snip.to_string()
                 };
 
-                if parent_is_if {
+                if parent_node_is_if_expr(&e, &cx) {
                     hint = format!("{{ {} }}", hint);
                 }
 
@@ -146,21 +124,15 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
     }
 }
 
-fn parent_node_is_if_expr(expr: &Expr, cx: &LateContext) -> bool {
+fn parent_node_is_if_expr<'a, 'b>(expr: &Expr, cx: &LateContext<'a, 'b>) -> bool {
     let parent_id = cx.tcx.hir().get_parent_node(expr.id);
     let parent_node = cx.tcx.hir().get(parent_id);
 
-    match parent_node {
-        rustc::hir::Node::Expr(e) => {
-            match e.node {
-                ExprKind::If(_,_,_) => {
-                    return true;
-                }
-                _ => { }
-            }
-        },
-        _ => { }
-    };
+    if let rustc::hir::Node::Expr(e) = parent_node {
+        if let ExprKind::If(_,_,_) = e.node {
+           return true;
+        }
+    }
 
     false
 }
