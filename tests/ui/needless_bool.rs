@@ -142,14 +142,13 @@ fn needless_bool3(x: bool) {
     if x == false {};
 }
 
-fn needless_bool4() {
+fn needless_bool_in_the_suggestion_wraps_the_predicate_of_if_else_statement_in_brackets() {
     let b = false;
     let returns_bool = || false;
 
     let x = if b {
-        unimplemented!()
-    } else if returns_bool()
-    {
+        true
+    } else if returns_bool() {
         false
     } else {
         true

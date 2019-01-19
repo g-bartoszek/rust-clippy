@@ -139,9 +139,8 @@ LL |     if x == false {};
 error: this if-then-else expression returns a bool literal
   --> $DIR/needless_bool.rs:151:12
    |
-LL |       } else if returns_bool()
+LL |       } else if returns_bool() {
    |  ____________^
-LL | |     {
 LL | |         false
 LL | |     } else {
 LL | |         true
