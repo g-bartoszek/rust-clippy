@@ -177,3 +177,11 @@ fn test_redundant_closure_with_another_closure() {
     let closure = |a| println!("{}", a);
     let a = Some(1u8).map(|a| closure(a));
 }
+
+fn call<F: FnOnce(&mut String) -> String>(f: F) -> String {
+    f(&mut "Hello".to_owned())
+}
+
+fn test1() {
+    call(|s| s.clone());
+}

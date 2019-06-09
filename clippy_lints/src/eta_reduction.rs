@@ -149,8 +149,12 @@ fn get_ufcs_type_name(
     let expected_type_of_self = &cx.tcx.fn_sig(method_def_id).inputs_and_output().skip_binder()[0];
     let actual_type_of_self = &cx.tables.node_type(self_arg.hir_id);
 
+    //println!("AA {:?}", expected_type_of_self);
+    //println!("BB {:?}", actual_type_of_self);
+
     if let Some(trait_id) = cx.tcx.trait_of_item(method_def_id) {
         if match_borrow_depth(expected_type_of_self, &actual_type_of_self) {
+            //println!("A trait");
             return Some(cx.tcx.def_path_str(trait_id));
         }
     }
@@ -158,6 +162,7 @@ fn get_ufcs_type_name(
     cx.tcx.impl_of_method(method_def_id).and_then(|_| {
         //a type may implicitly implement other type's methods (e.g. Deref)
         if match_types(expected_type_of_self, &actual_type_of_self) {
+            //println!("A struct");
             return Some(get_type_name(cx, &actual_type_of_self));
         }
         None
@@ -166,7 +171,7 @@ fn get_ufcs_type_name(
 
 fn match_borrow_depth(lhs: Ty<'_>, rhs: Ty<'_>) -> bool {
     match (&lhs.sty, &rhs.sty) {
-        (ty::Ref(_, t1, _), ty::Ref(_, t2, _)) => match_borrow_depth(&t1, &t2),
+        (ty::Ref(_, t1, mut1), ty::Ref(_, t2, mut2)) => mut1 == mut2 && match_borrow_depth(&t1, &t2),
         (l, r) => match (l, r) {
             (ty::Ref(_, _, _), _) | (_, ty::Ref(_, _, _)) => false,
             (_, _) => true,
@@ -181,8 +186,10 @@ fn match_types(lhs: Ty<'_>, rhs: Ty<'_>) -> bool {
         | (ty::Int(_), ty::Int(_))
         | (ty::Uint(_), ty::Uint(_))
         | (ty::Str, ty::Str) => true,
-        (ty::Ref(_, t1, _), ty::Ref(_, t2, _))
-        | (ty::Array(t1, _), ty::Array(t2, _))
+        (ty::Ref(_, t1, mut1), ty::Ref(_, t2, mut2)) => {
+            mut1 == mut2 && match_types(t1,t2)
+        }
+        (ty::Array(t1, _), ty::Array(t2, _))
         | (ty::Slice(t1), ty::Slice(t2)) => match_types(t1, t2),
         (ty::Adt(def1, _), ty::Adt(def2, _)) => def1 == def2,
         (_, _) => false,
