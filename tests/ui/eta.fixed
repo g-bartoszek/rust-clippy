@@ -181,23 +181,18 @@ fn test_redundant_closure_with_another_closure() {
 fn call<F: FnOnce(&mut String) -> String>(f: F) -> String {
     f(&mut "Hello".to_owned())
 }
-
-fn test1() {
+fn test_difference_in_mutability() {
     call(|s| s.clone());
 }
 
-
-struct Baz;
-
-impl std::ops::Deref for Baz {
+struct Bar;
+impl std::ops::Deref for Bar {
     type Target = str;
-
     fn deref(&self) -> &str {
         "hi"
     }
 }
 
-fn test2() {
-    let _ = [Baz].iter().map(|s| s.to_string()).collect::<Vec<_>>();;
-    //let _ = [Baz].iter().map(|s| s.to_string()).collect::<Vec<_>>();;
+fn test_deref_with_trait_as_target() {
+    let _ = [Bar].iter().map(|s| s.to_string()).collect::<Vec<_>>();;
 }
