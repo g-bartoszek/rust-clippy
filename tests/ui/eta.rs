@@ -185,3 +185,19 @@ fn call<F: FnOnce(&mut String) -> String>(f: F) -> String {
 fn test1() {
     call(|s| s.clone());
 }
+
+
+struct Baz;
+
+impl std::ops::Deref for Baz {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        "hi"
+    }
+}
+
+fn test2() {
+    let _ = [Baz].iter().map(|s| s.to_string()).collect::<Vec<_>>();;
+    //let _ = [Baz].iter().map(|s| s.to_string()).collect::<Vec<_>>();;
+}

@@ -177,3 +177,27 @@ fn test_redundant_closure_with_another_closure() {
     let closure = |a| println!("{}", a);
     let a = Some(1u8).map(closure);
 }
+
+fn call<F: FnOnce(&mut String) -> String>(f: F) -> String {
+    f(&mut "Hello".to_owned())
+}
+
+fn test1() {
+    call(|s| s.clone());
+}
+
+
+struct Baz;
+
+impl std::ops::Deref for Baz {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        "hi"
+    }
+}
+
+fn test2() {
+    let _ = [Baz].iter().map(|s| s.to_string()).collect::<Vec<_>>();;
+    //let _ = [Baz].iter().map(|s| s.to_string()).collect::<Vec<_>>();;
+}

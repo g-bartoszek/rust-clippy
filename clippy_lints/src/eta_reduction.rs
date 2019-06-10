@@ -6,7 +6,7 @@ use rustc::ty::{self, Ty};
 use rustc::{declare_lint_pass, declare_tool_lint};
 use rustc_errors::Applicability;
 
-use crate::utils::{is_adjusted, iter_input_pats, snippet_opt, span_lint_and_then, type_is_unsafe_function};
+use crate::utils::{is_adjusted, iter_input_pats, snippet_opt, span_lint_and_then, type_is_unsafe_function, implements_trait};
 
 declare_clippy_lint! {
     /// **What it does:** Checks for closures which just call another function where
@@ -112,6 +112,7 @@ fn check_closure(cx: &LateContext<'_, '_>, expr: &Expr) {
 
         if_chain!(
             if let ExprKind::MethodCall(ref path, _, ref args) = ex.node;
+            //let a = { println!("\n\n {:?} \n {:?} {:?}", path.ident.name, path, args) };
 
             // Not the same number of arguments, there is no way the closure is the same as the function return;
             if args.len() == decl.inputs.len();
@@ -127,6 +128,7 @@ fn check_closure(cx: &LateContext<'_, '_>, expr: &Expr) {
             if let Some(name) = get_ufcs_type_name(cx, method_def_id, &args[0]);
 
             then {
+             //   println!("Can do it");
                 span_lint_and_then(cx, REDUNDANT_CLOSURE_FOR_METHOD_CALLS, expr.span, "redundant closure found", |db| {
                     db.span_suggestion(
                         expr.span,
@@ -135,6 +137,8 @@ fn check_closure(cx: &LateContext<'_, '_>, expr: &Expr) {
                         Applicability::MachineApplicable,
                     );
                 });
+            } else {
+           //     println!("Can't do it");
             }
         );
     }
@@ -153,16 +157,17 @@ fn get_ufcs_type_name(
     //println!("BB {:?}", actual_type_of_self);
 
     if let Some(trait_id) = cx.tcx.trait_of_item(method_def_id) {
-        if match_borrow_depth(expected_type_of_self, &actual_type_of_self) {
-            //println!("A trait");
+        //println!("A trait {}", cx.tcx.def_path_str(trait_id));
+        if /*match_borrow_depth(expected_type_of_self, &actual_type_of_self) &&*/
+            implements_trait(cx, actual_type_of_self, trait_id, &[]) {
             return Some(cx.tcx.def_path_str(trait_id));
         }
     }
 
     cx.tcx.impl_of_method(method_def_id).and_then(|_| {
         //a type may implicitly implement other type's methods (e.g. Deref)
+        //println!("A struct");
         if match_types(expected_type_of_self, &actual_type_of_self) {
-            //println!("A struct");
             return Some(get_type_name(cx, &actual_type_of_self));
         }
         None
